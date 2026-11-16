@@ -72,9 +72,9 @@ public class SolveActivity extends Activity {
     private void startSolve(){if(photo==null){status.setText("Önce sorunun fotoğrafını çek veya galeriden seç.");return;}String key=SecureKey.get(this);if(key.trim().isEmpty()){
             status.setText("Çözüm için Gemini API anahtarını ayarlardan gir.");new android.app.AlertDialog.Builder(this).setTitle("Yapay zekâ bağlantısı").setMessage("Gemini API anahtarı henüz eklenmemiş. Optik kontrolü internetsiz çalışır, yapay zekâ çözümü için API erişimi gerekir.").setPositiveButton("Ayarları aç",(d,w)->startActivity(new Intent(this,SettingsActivity.class))).setNegativeButton("Daha sonra",(d,w)->{}).show();return;
         }
-        solveButton.setEnabled(false);solveButton.setAlpha(.5f);status.setText("Soru analiz ediliyor...");solution.setText("");Bitmap toSend=photo;String model=SecureKey.model(this);
+        solveButton.setEnabled(false);solveButton.setAlpha(.5f);status.setText("Soru analiz ediliyor · gerekirse yedek model denenecek...");solution.setText("");Bitmap toSend=photo;String model=SecureKey.model(this);
         Executors.newSingleThreadExecutor().execute(()->{
-            try{String answerText=AiClient.solve(key,model,toSend,test.subject,test.topic==null?"":test.topic,question,answer);store.saveSolution(test.id,question,answerText);runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);solveButton.setText("YENİDEN ÇÖZ");status.setText("Tam çözüm hazır · cihazına kaydedildi");solution.setText(answerText);});}
+            try{AiClient.SolutionResult response=AiClient.solve(key,model,toSend,test.subject,test.topic==null?"":test.topic,question,answer);String answerText=response.text;store.saveSolution(test.id,question,answerText);runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);solveButton.setText("YENİDEN ÇÖZ");status.setText("Tam çözüm hazır · "+response.model+(response.usedFallback?" (yedek model)":"")+" · kaydedildi");solution.setText(answerText);});}
             catch(Exception e){runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);status.setText("Çözüm alınamadı: "+e.getMessage());});}
         });
     }
