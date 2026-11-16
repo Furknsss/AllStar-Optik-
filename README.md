@@ -1,19 +1,16 @@
-# AllStar Optik — Android
+# AllStar Optik v0.4
 
-Bağımsız kişisel Android optik cevap kontrol uygulaması; yayınevinin resmî ürünü değildir.
+Bu proje 345'in resmi ürünü değildir. Kişisel Android optik kontrol uygulamasıdır.
 
-Kaynak Java dosyaları depoda düzenlenebilir şekilde tutulur. Cevap veritabanı `build/source_v03.zip.base64` içinde `app/src/main/assets/answers.sqlite` olarak saklanır; Android derleme iş akışı kaynak arşivini açar.
+## Kullanım
+QR okut ya da TYT/AYT, ders, kitap, konu ve test ara; şık işaretle; doğru-yanlış-boş-net sonuçlarını ve cihazdaki geçmişi gör. Yanlış soruyu kamerayla çekip, kullanıcı tarafından girilen Gemini API anahtarıyla tam çözüm al.
 
-## İşlevler
-- QR tarama / TYT-AYT, ders, kitap, konu ve test arama
-- A-E optik, doğru/yanlış/boş/net, yerel geçmiş
-- Yanlış sorunun fotoğrafını kamera/galeriden yükleme ve Gemini ile doğrudan tam çözüm (API anahtarı gerekir)
-- Kamera izni kullanım anında; galeri için ekstra izin yoktur
+## Veri doğrulaması
+Kullanıcının sağladığı **48 PDF / 460 sayfa** kaynak olarak kullanılmıştır. PDF cevaplarından algılanan 2.565 grup içinde aynı sayfada aynı test ve cevapları tekrar eden bir grup tekilleştirildi. Sonuç: **2.564 farklı grup, 22.673 cevap**, 219 görsel etiketi PDF başlık logo görsellerinden ayrıştırıldı, 781 sayısal başlık resmi görsellerle türüne göre düzeltildi, **boş etiket 0**. 2.561 grubun soru numaraları 1..N ardışık ve geçerli A-E şıkları içeriyor.
 
-## Veri sınırları
-48 kullanıcı PDF'sinden otomatik çıkarılmış 2.565 test grubu, 22.681 cevap. 3 numaralandırma hatalı grup puanlanmaz; 219 belirsiz etiket ayrıca doğrulanmalıdır. Diğer cevapların tamamı elle doğrulanmadığından hata olasılığı vardır. QR eşleştirmeleri ilk seferde yapılır.
+**Üç basılı cevap anahtarı hatası** (AYT Mantık 4-C'de 10. cevap yok; TYT-AYT Tarih 5. kitap Günlük 3-B ve ÖSYM 6'da basılı 12 numarası yinelenmiş) PDF'de gerçek hata olduğundan tahmin edilmedi, yanlış sonuç oluşturmamak için uygulamada arama dışına alındı. Bunların **tam doğruluğu için yayınevinin düzeltilmiş anahtarı veya ilgili kitabın içeriği gerekir**. Bu nedenle tüm yayınevi cevaplarının tartışmasız doğru olduğu iddia edilmez. Android gerçek cihaz testi de ayrıca gereklidir.
 
 ## Derleme
-Actions → `AllStar Optik Android APK` → başarılı çalıştırmanın `AllStar-Optik-v0.3-debug-APK` artifact'i.
+GitHub Actions: `AllStar Optik Android APK` → başarılı koşu → `AllStar-Optik-v0.4-debug-APK` artifact'i. İş akışı `build/source_v04.zip.base64` arşivini açarak uygulamayı derler.
 
-Not: GitHub Actions şu an GitHub tarafından runner atanamadan (0 işlem adımı) durduruluyor. Bu nedenle **henüz kurulabilir/test edilmiş APK yoktur**.
+`CAMERA` izni QR okutma/fotoğraf çekme sırasında istenir; galeri Android'in belge seçicisini kullanır. `INTERNET` normal Android iznidir.

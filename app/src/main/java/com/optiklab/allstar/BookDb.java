@@ -17,7 +17,7 @@ public final class BookDb {
     public static class Answer {public int printedNumber;public String correct;}
     private final SQLiteDatabase db;
     BookDb(Context c){
-        File file=new File(c.getFilesDir(),"allstar_answers_1.sqlite");
+        File file=new File(c.getFilesDir(),"allstar_answers_2.sqlite");
         if(!file.exists()){
             try(InputStream in=c.getAssets().open("answers.sqlite");FileOutputStream out=new FileOutputStream(file)){
                 byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)out.write(b,0,n);
@@ -29,7 +29,7 @@ public final class BookDb {
     private final String COLUMNS="id,program,subject,book_no,topic_extracted,test_label_extracted,answer_entries,needs_review,pdf_page,pdf_file";
     Test test(String id){try(Cursor c=db.rawQuery("SELECT "+COLUMNS+" FROM tests WHERE id=?",new String[]{id})){return c.moveToFirst()?from(c):null;}}
     List<Test> search(String query,String prog,String sub,int book,int limit){
-        List<Test> list=new ArrayList<>();StringBuilder sql=new StringBuilder("SELECT "+COLUMNS+" FROM tests WHERE 1=1");List<String> args=new ArrayList<>();
+        List<Test> list=new ArrayList<>();StringBuilder sql=new StringBuilder("SELECT "+COLUMNS+" FROM tests WHERE needs_review=0");List<String> args=new ArrayList<>();
         if(prog!=null&&!prog.trim().isEmpty()){sql.append(" AND program LIKE ?");args.add("%"+prog+"%");}
         if(sub!=null&&!sub.trim().isEmpty()){sql.append(" AND subject=?");args.add(sub);}
         if(book>0){sql.append(" AND book_no=?");args.add(String.valueOf(book));}
