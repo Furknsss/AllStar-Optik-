@@ -1,0 +1,65 @@
+name: QR scanner Android emulator smoke test
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/qr-emulator-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build APK using updated sources and existing answer DB
+        run: |
+          base64 --decode build/source_v04_final_verified.zip.base64 > /tmp/allstar-source.zip
+          unzip -j -o -q /tmp/allstar-source.zip app/src/main/assets/answers.sqlite -d app/src/main/assets
+          gradle --no-daemon :app:assembleDebug
+      - name: Launch scanner and inspect Android crash logs
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_3a
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated -camera-front emulated
+          disable-animations: true
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell pm grant com.optiklab.allstar android.permission.CAMERA
+            adb shell am start -W -n com.optiklab.allstar/.MainActivity
+            sleep 3
+            adb shell am start -W -n com.optiklab.allstar/.QrScannerActivity
+            sleep 8
+            adb logcat -d -v brief > qr-smoke-logcat.txt
+            adb shell dumpsys activity activities > qr-smoke-activities.txt
+            if grep -E 'FATAL EXCEPTION|Process: com.optiklab.allstar' qr-smoke-logcat.txt; then
+              echo 'Android crash log detected' >&2
+              exit 1
+            fi
+            if ! grep -q 'com.optiklab.allstar/.QrScannerActivity' qr-smoke-activities.txt; then
+              echo 'QR scanner Activity not present in activity state' >&2
+              exit 1
+            fi
+            echo 'QR scanner launched without process crash'
+      - name: Upload emulator diagnostic traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-emulator-smoke-diagnostics
+          path: |
+            qr-smoke-logcat.txt
+            qr-smoke-activities.txt
+          if-no-files-found: ignore
