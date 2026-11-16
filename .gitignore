@@ -1,0 +1,6 @@
+.gradle/
+**/build/
+!build/source_v03.zip.base64
+local.properties
+*.apk
+.idea/
