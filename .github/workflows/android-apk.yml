@@ -37,6 +37,16 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+      - name: Bundle offline MathJax SVG engine
+        run: |
+          mkdir -p app/src/main/assets/mathjax
+          npm pack mathjax-full@3.2.1 --silent > /tmp/mathjax-package-name.txt
+          package_name="$(tail -n 1 /tmp/mathjax-package-name.txt)"
+          mkdir -p /tmp/mathjax-package
+          tar -xzf "$package_name" -C /tmp/mathjax-package
+          cp /tmp/mathjax-package/package/es5/tex-svg.js app/src/main/assets/mathjax/tex-svg.js
+          cp /tmp/mathjax-package/package/LICENSE app/src/main/assets/mathjax/LICENSE
+          test -s app/src/main/assets/mathjax/tex-svg.js
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug --stacktrace
       - name: Verify APK exists
@@ -46,7 +56,7 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: AllStar-Optik-v0.6-gemini-fallback-debug-APK
+          name: AllStar-Optik-v0.7-math-tutor-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

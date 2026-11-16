@@ -72,14 +72,28 @@ public final class AiClient {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out);
         String encoded = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
-        String prompt = "Sen deneyimli bir YKS öğretmenisin. Bu fotoğraftan " + subject + " / "
-            + topic + " / " + question + ". soruyu çöz. SORUYA DAİR TAM, DOĞRUDAN ve ADIM ADIM çözüm yaz. "
-            + "Önce görseldeki verilenleri özetle; sonra işlem adımlarını açıkla, atlama yapma; "
-            + "gerektiğinde formülü gerekçelendir. İpucu aşaması yapma. Türkçe yaz, matematikte okunabilir "
-            + "semboller kullan. Resimde birden fazla soru varsa yalnızca " + question
-            + " numaralı soruyu çözmeye çalış; numara belirsizse açıkça söyle. "
-            + "Cevap anahtarındaki seçenek: " + correct + ". Sonucu buna zorlamadan bağımsız çöz; "
-            + "sonda karşılaştır, uyuşmazsa UYUŞMAZLIK diye belirt. Görsel okunmuyorsa çözüm uydurma.";
+        String prompt =
+            "Sen YKS'de uzman, konuyu anlaşılır öğreten bir matematik/geometri öğretmenisin. Öğrenci yalnızca cevabı değil, "
+          + "NASIL DÜŞÜNMESİ GEREKTİĞİNİ öğrenmek istiyor. Bu fotoğrafta " + subject + " / " + topic
+          + " / " + question + ". soruyu analiz et. "
+          + "Görseldeki soru kökünü, şeklin üzerindeki harfleri, ölçüleri ve ne sorulduğunu çok dikkatli oku. "
+          + "Şeklin görünüşüne bakarak ölçü veya diklik varsayma, yazmayan bir bilgiyi uydurma. "
+          + "Fotoğrafta birden fazla soru varsa yalnızca " + question + ". soruyu çöz. "
+          + "Şekil/sayı okunmuyorsa çözüm uydurmak yerine hangi veriyi tekrar çekmesi gerektiğini açıkça söyle. "
+          + "Yanıtı TÜRKÇE, sakin, öğrencinin anlayacağı şekilde anlat. Şu düzeni mutlaka uygula:\\n"
+          + "## Soru bizden ne istiyor?\\nSoruyu 1-2 cümlede doğru özetle.\\n"
+          + "## Çözüm fikri\\n**Nasıl fark ederiz?** Soru türünü tanıtan ipucunu ve yöntem seçiminin gerekçesini anlat.\\n"
+          + "## 1. Adım — ...\\n**Ne yapıyoruz?** Somut işlem/çizim/denklem.\\n**Neden?** Bu adımın mantığı.\\n"
+          + "## 2. Adım — ...\\nGerekli sonraki adımlar için aynı yaklaşım; işlem atlama.\\n"
+          + "## ÖSYM taktiği\\nBu soruya özel, daha hızlı çözme veya önemli bir tuzaktan kaçınma taktiği ver. "
+          + "Genel geçer, boş öğüt yazma.\\n"
+          + "## Sonuç ve cevap kontrolü\\nHesapladığın sonucu, doğru seçeneği ve kısa tutarlılık kontrolünü göster. "
+          + "Cevap anahtarı " + correct + " diyor. Çözümü bu seçeneğe zorlamadan bağımsız çöz; "
+          + "uyuşmazlık varsa açıkça belirt.\\n"
+          + "Formülleri görsel olarak güzel göstermek için satır içi \\( ... \\) ve ayrı satır \\[ ... \\] "
+          + "LaTeX gösterimini kullan. Karmaşık ifade yerine doğru, sade ve açık denklemler seç. "
+          + "Sadece Markdown başlıkları ve açıklayıcı paragraflar kullan; ham HTML ve kod bloğu yazma. "
+          + "Aşırı uzatma, ama öğrenci hiçbir adımda 'neden?' sorusuyla kalmasın.";
         JSONArray parts = new JSONArray()
             .put(new JSONObject().put("text", prompt))
             .put(new JSONObject().put("inline_data", new JSONObject()

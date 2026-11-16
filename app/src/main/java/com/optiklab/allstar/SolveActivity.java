@@ -20,6 +20,11 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.JavascriptInterface;
+import android.view.ViewGroup;
+import android.graphics.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -29,16 +34,54 @@ import java.util.concurrent.Executors;
 public class SolveActivity extends Activity {
     static final int CAMERA=31, GALLERY=32, CAMERA_PERMISSION=7011;
     Store store;BookDb.Test test;int question;String answer;Uri captureUri;String imagePath;Bitmap photo;
-    TextView status,solution,solveButton;ImageView preview;
-    @Override public void onCreate(Bundle b){super.onCreate(b);store=new Store(this);String id=getIntent().getStringExtra("test_id");test=new BookDb(this).test(id);question=getIntent().getIntExtra("question_no",1);answer=getIntent().getStringExtra("correct");if(test==null){finish();return;}if(answer==null)answer="Bilinmiyor";show();String[] previous=store.getSolution(test.id,question);if(previous[0]!=null){loadFromFile(previous[0]);}if(previous[1]!=null&&!previous[1].isBlank()){solution.setText(previous[1]);status.setText("Kaydedilmiş çözüm");solveButton.setText("YENİDEN ÇÖZ");}}
+    TextView status,solveButton;WebView solutionView;ImageView preview;
+    @Override public void onCreate(Bundle b){super.onCreate(b);store=new Store(this);String id=getIntent().getStringExtra("test_id");test=new BookDb(this).test(id);question=getIntent().getIntExtra("question_no",1);answer=getIntent().getStringExtra("correct");if(test==null){finish();return;}if(answer==null)answer="Bilinmiyor";show();String[] previous=store.getSolution(test.id,question);if(previous[0]!=null){loadFromFile(previous[0]);}if(previous[1]!=null&&!previous[1].isBlank()){renderSolution(previous[1]);status.setText("Kaydedilmiş çözüm · adımlar ve taktikler");solveButton.setText("YENİDEN ÇÖZ");}}
     private void show(){LinearLayout root=Ui.base(this);Ui.header(this,root,question+". Soru",test.summary());ScrollView scroll=Ui.scrolling(this,root);LinearLayout content=Ui.vertical(this);scroll.addView(content);
         content.addView(Ui.text(this,"Doğrudan tam çözüm",22,Ui.WHITE,true));Ui.info(this,content,"Sorunun tamamını çek. Yapay zekâ adım adım çözer ve cevap anahtarıyla karşılaştırır.");Ui.spacer(this,content,18);
         LinearLayout photoCard=Ui.card(this);preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);preview.setBackground(Ui.bg(this,Ui.PANEL2,14));photoCard.addView(preview,new LinearLayout.LayoutParams(-1,Ui.dp(this,200)));content.addView(photoCard);
         LinearLayout actions=Ui.horizontal(this);TextView camera=Ui.button(this,"⌾  Kamera",false);TextView gallery=Ui.button(this,"▧  Galeri",false);LinearLayout.LayoutParams a=new LinearLayout.LayoutParams(0,-2,1);a.rightMargin=Ui.dp(this,8);actions.addView(camera,a);actions.addView(gallery,new LinearLayout.LayoutParams(0,-2,1));camera.setOnClickListener(v->openCamera());gallery.setOnClickListener(v->openGallery());content.addView(actions,Ui.lp(this,-1,-2,12));
         solveButton=Ui.button(this,"ADIM ADIM ÇÖZ  ✦",true);solveButton.setOnClickListener(v->startSolve());content.addView(solveButton,Ui.lp(this,-1,-2,18));
         status=Ui.text(this,"Fotoğraf eklemen gerekiyor.",13,Ui.MUTED,false);content.addView(status,Ui.lp(this,-1,-2,16));Ui.spacer(this,content,20);
-        solution=Ui.text(this,"",15,Ui.WHITE,false);solution.setLineSpacing(Ui.dp(this,5),1.1f);content.addView(solution);Ui.spacer(this,content,40);
+        content.addView(Ui.text(this,"Çözüm ve düşünme yöntemi",19,Ui.WHITE,true),Ui.lp(this,-1,-2,5));
+        solutionView=new WebView(this);
+        solutionView.setBackgroundColor(Color.BLACK);
+        solutionView.getSettings().setJavaScriptEnabled(true);
+        solutionView.getSettings().setAllowFileAccess(true);
+        solutionView.getSettings().setAllowContentAccess(false);
+        solutionView.getSettings().setAllowFileAccessFromFileURLs(false);
+        solutionView.getSettings().setAllowUniversalAccessFromFileURLs(false);
+        solutionView.getSettings().setDefaultTextEncodingName("UTF-8");
+        solutionView.setVerticalScrollBarEnabled(false);
+        solutionView.setHorizontalScrollBarEnabled(false);
+        solutionView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        solutionView.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) { return true; }
+        });
+        solutionView.addJavascriptInterface(new HeightBridge(),"OptikHeight");
+        content.addView(solutionView,new LinearLayout.LayoutParams(-1,Ui.dp(this,240)));
+        solutionView.setVisibility(View.GONE);
+        Ui.spacer(this,content,40);
     }
+    private final class HeightBridge {
+        @JavascriptInterface public void setHeight(int cssHeight) {
+            runOnUiThread(() -> {
+                if (solutionView == null || isFinishing()) return;
+                int measured = Ui.dp(SolveActivity.this,Math.min(28000,Math.max(150,cssHeight)));
+                ViewGroup.LayoutParams lp = solutionView.getLayoutParams();
+                if (lp != null && Math.abs(lp.height-measured) > Ui.dp(SolveActivity.this,8)) {
+                    lp.height=measured;
+                    solutionView.setLayoutParams(lp);
+                }
+            });
+        }
+    }
+    private void renderSolution(String markdown) {
+        if (solutionView == null) return;
+        solutionView.setVisibility(View.VISIBLE);
+        solutionView.loadDataWithBaseURL("file:///android_asset/", SolutionRenderer.html(markdown),
+                "text/html", "UTF-8", null);
+    }
+
     private void openGallery(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,GALLERY);}
     private void openCamera(){
         if(Build.VERSION.SDK_INT>=23 && checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
@@ -72,9 +115,9 @@ public class SolveActivity extends Activity {
     private void startSolve(){if(photo==null){status.setText("Önce sorunun fotoğrafını çek veya galeriden seç.");return;}String key=SecureKey.get(this);if(key.trim().isEmpty()){
             status.setText("Çözüm için Gemini API anahtarını ayarlardan gir.");new android.app.AlertDialog.Builder(this).setTitle("Yapay zekâ bağlantısı").setMessage("Gemini API anahtarı henüz eklenmemiş. Optik kontrolü internetsiz çalışır, yapay zekâ çözümü için API erişimi gerekir.").setPositiveButton("Ayarları aç",(d,w)->startActivity(new Intent(this,SettingsActivity.class))).setNegativeButton("Daha sonra",(d,w)->{}).show();return;
         }
-        solveButton.setEnabled(false);solveButton.setAlpha(.5f);status.setText("Soru analiz ediliyor · gerekirse yedek model denenecek...");solution.setText("");Bitmap toSend=photo;String model=SecureKey.model(this);
+        solveButton.setEnabled(false);solveButton.setAlpha(.5f);status.setText("Soru analiz ediliyor · gerekirse yedek model denenecek...");solutionView.setVisibility(View.GONE);Bitmap toSend=photo;String model=SecureKey.model(this);
         Executors.newSingleThreadExecutor().execute(()->{
-            try{AiClient.SolutionResult response=AiClient.solve(key,model,toSend,test.subject,test.topic==null?"":test.topic,question,answer);String answerText=response.text;store.saveSolution(test.id,question,answerText);runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);solveButton.setText("YENİDEN ÇÖZ");status.setText("Tam çözüm hazır · "+response.model+(response.usedFallback?" (yedek model)":"")+" · kaydedildi");solution.setText(answerText);});}
+            try{AiClient.SolutionResult response=AiClient.solve(key,model,toSend,test.subject,test.topic==null?"":test.topic,question,answer);String answerText=response.text;store.saveSolution(test.id,question,answerText);runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);solveButton.setText("YENİDEN ÇÖZ");status.setText("Tam çözüm hazır · "+response.model+(response.usedFallback?" (yedek model)":"")+" · kaydedildi");renderSolution(answerText);});}
             catch(Exception e){runOnUiThread(()->{solveButton.setEnabled(true);solveButton.setAlpha(1f);status.setText("Çözüm alınamadı: "+e.getMessage());});}
         });
     }
