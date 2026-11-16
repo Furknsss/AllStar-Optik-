@@ -10,6 +10,7 @@
         <activity android:name=".ResultActivity" android:exported="false"/>
         <activity android:name=".OpticActivity" android:exported="false"/>
         <activity android:name=".SearchActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".QrScannerActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden"/>
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

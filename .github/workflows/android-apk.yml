@@ -15,8 +15,10 @@ jobs:
       - name: Unpack Android sources and answer database
         run: |
           base64 --decode build/source_v04_final_verified.zip.base64 > /tmp/allstar-source.zip
-          unzip -o -q /tmp/allstar-source.zip -d .
-          test -f app/src/main/assets/answers.sqlite
+          # Extract only the validated private database. Never overwrite checked-in source fixes.
+          unzip -j -o -q /tmp/allstar-source.zip app/src/main/assets/answers.sqlite -d app/src/main/assets
+          test -s app/src/main/assets/answers.sqlite
+          test -f app/src/main/java/com/optiklab/allstar/QrScannerActivity.java
           test -f app/build.gradle
       - name: Validate offline answer database
         run: python3 tools/verify_data.py
@@ -44,7 +46,7 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: AllStar-Optik-v0.4-verified-debug-APK
+          name: AllStar-Optik-v0.5-qr-fix-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

@@ -1,22 +1,13 @@
 package com.optiklab.allstar;
 
 import android.app.Activity;
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.widget.Toast;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -27,25 +18,25 @@ public class MainActivity extends Activity {
     private void onDeepLink(Intent intent){if(intent!=null&&Intent.ACTION_VIEW.equals(intent.getAction())&&intent.getData()!=null){onQr(intent.getData().toString());}}
     private void onQr(String qr){if(qr==null||qr.trim().isEmpty())return;String id=store.qrTest(qr);if(id!=null&&books.test(id)!=null){startActivity(new Intent(this,OpticActivity.class).putExtra("test_id",id));}
         else{startActivity(new Intent(this,SearchActivity.class).putExtra("qr",qr));}}
-    private static final int PERMISSION_QR = 7001;
-    private void scan(){
-        if(Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_QR);
-            return;
-        }
-        launchScan();
-    }
-    private void launchScan(){new IntentIntegrator(this).setDesiredBarcodeFormats(IntentIntegrator.QR_CODE).setPrompt("Kitaptaki test QR kodunu okut").setBeepEnabled(false).setOrientationLocked(false).initiateScan();}
-    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){
-        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-        if(requestCode==PERMISSION_QR){
-            if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED){launchScan();}
-            else new android.app.AlertDialog.Builder(this).setTitle("Kamera izni gerekli")
-                .setMessage("QR kodunu okumak için kameraya izin vermelisin. İstersen testleri arayarak da açabilirsin.")
-                .setPositiveButton("Test Ara",(d,w)->openSearch()).setNegativeButton("Kapat",(d,w)->{}).show();
+    private static final int REQUEST_QR = 7001;
+    private void scan() {
+        try {
+            startActivityForResult(new Intent(this, QrScannerActivity.class), REQUEST_QR);
+        } catch (RuntimeException e) {
+            android.util.Log.e("AllStarQR", "QR scanner launch failed", e);
+            new android.app.AlertDialog.Builder(this).setTitle("QR tarayıcı açılamadı")
+                .setMessage("Kamera ekranı başlatılamadı. Dilersen testi arayarak açabilirsin.")
+                .setPositiveButton("Test Ara", (d, w) -> openSearch())
+                .setNegativeButton("Kapat", null).show();
         }
     }
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);IntentResult result=IntentIntegrator.parseActivityResult(requestCode,resultCode,data);if(result!=null&&result.getContents()!=null)onQr(result.getContents());}
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_QR && resultCode == RESULT_OK && data != null) {
+            String qr = data.getStringExtra(QrScannerActivity.EXTRA_QR_RESULT);
+            if (qr != null) onQr(qr);
+        }
+    }
     private void openSearch(){startActivity(new Intent(this,SearchActivity.class));}
     private void show(){LinearLayout root=Ui.base(this);LinearLayout top=Ui.horizontal(this);LinearLayout names=Ui.vertical(this);TextView brand=Ui.text(this,"OPTİK",29,Ui.WHITE,true);brand.setLetterSpacing(0.13f);names.addView(brand);names.addView(Ui.text(this,"345 AllStar kişisel test kontrolü",12,Ui.MUTED,false),Ui.lp(this,-1,-2,5));top.addView(names,new LinearLayout.LayoutParams(0,-2,1));TextView settings=Ui.text(this,"⚙",25,Ui.WHITE,false);settings.setGravity(Gravity.CENTER);settings.setBackground(Ui.outlined(this,Ui.PANEL,16,Ui.STROKE));top.addView(settings,new LinearLayout.LayoutParams(Ui.dp(this,47),Ui.dp(this,47)));settings.setOnClickListener(v->startActivity(new Intent(this,SettingsActivity.class)));root.addView(top,Ui.lp(this,-1,-2,5));
         ScrollView scroll=Ui.scrolling(this,root);LinearLayout main=Ui.vertical(this);scroll.addView(main);
